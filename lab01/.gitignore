@@ -1,0 +1,10 @@
+*.docx
+cpp/.idea
+cpp/Project1/.vs
+cpp/Project1/Debug
+cpp/Project1/Release
+cpp/Project1/x64
+cpp/Project1/*.bmp
+cpp/Project1/*.png
+cpp/Project1/*.jpg
+cpp/Project1/*.user

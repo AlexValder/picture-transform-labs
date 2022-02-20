@@ -1,6 +1,8 @@
 *.docx
-cpp/.idea
-cpp/Project1/.vs
+*.odt
+*.odt#
+cpp/.idea/
+cpp/Project1/.vs/
 cpp/Project1/Debug
 cpp/Project1/Release
 cpp/Project1/x64

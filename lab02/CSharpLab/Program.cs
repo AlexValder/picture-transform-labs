@@ -10,32 +10,87 @@ namespace CSharpLab {
     internal static class Program {
         private delegate GistoCollection GistogramTransform(GistoCollection original);
 
-        public static void Main(string[] args) {
-            foreach (var arg in args) {
-                ShowHistogram(arg);
+        private delegate Bitmap ImageTransform(Bitmap bitmap, GistoCollection gisto = null);
+
+        public static void Main() {
+            while (true) {
+                PrintMenu();
+                var input = Console.ReadLine()?.Trim() ?? "";
+
+                switch (input) {
+                    case "1":
+                        ShowSimpleHistogram();
+                        break;
+                    case "2":
+                        Transform(Equalize);
+                        break;
+                    case "3":
+                        Transform(ByFunction);
+                        break;
+                    case "0":
+                        return;
+                    default:
+                        Console.Write($"Unknown input: {input}");
+                        break;
+                }
+
+                Console.ReadKey();
             }
         }
 
-        private static void ShowHistogram(string file) {
-            var resIndex = file.LastIndexOf("/", StringComparison.Ordinal);
-            var filename = file.Substring(resIndex + 1);
+        private static void ShowSimpleHistogram(string path = null) {
+            try {
+                string filename;
+                if (path == null) {
+                    Console.Write("Enter file name: ");
+                    filename = Console.ReadLine();
+                } else {
+                    filename = path;
+                }
 
-            using var image = (Bitmap)Image.FromFile(file);
-            var       data  = CreateHistogram(image);
-            using var form1  = new GistoForm($"{filename} - ORIGINAL", data);
-            form1.ShowDialog();
+                using var image = (Bitmap)Image.FromFile(filename!);
+                ShowSimpleHistogram(image, filename);
+            } catch (Exception e) {
+                Console.WriteLine($"ERROR {e}: {e.Message}");
+            }
+        }
 
-            using var eqImage = Equalize(image, data);
-            var       path     = AppDomain.CurrentDomain.BaseDirectory + $"eq\\{filename}";
-            SaveImage(eqImage, path);
-            using var form2 = new GistoForm($"{filename} - EQUALIZED", CreateHistogram(eqImage));
-            form2.ShowDialog();
+        private static void ShowSimpleHistogram(Bitmap image, string title = null) {
+            try {
+                var       data = CreateHistogram(image);
+                using var form = new GistoForm(title ?? "Gistogram", data);
+                form.ShowDialog();
+            } catch (Exception e) {
+                Console.WriteLine($"ERROR {e}: {e.Message}");
+            }
+        }
 
-            using var funImage = ByFunction(image, data);
-            var       path2   = AppDomain.CurrentDomain.BaseDirectory + $"fun\\{filename}";
-            SaveImage(funImage, path2);
-            using var form3 = new GistoForm($"{filename} - VARIANT 9", CreateHistogram(funImage));
-            form3.ShowDialog();
+        private static void Transform(ImageTransform action) {
+            try {
+                Console.Write("Enter input image path: ");
+                var input = Console.ReadLine();
+                Console.Write("Enter output image path: ");
+                var output = Console.ReadLine();
+
+                using var inImage  = (Bitmap)Image.FromFile(input!);
+                using var outImage = action(inImage);
+                SaveImage(outImage, output);
+                Console.WriteLine("Done!");
+            } catch (Exception e) {
+                Console.WriteLine($"ERROR {e}: {e.Message}");
+            }
+        }
+
+        private static void PrintMenu() {
+            Console.Clear();
+            Console.Write(
+                "MENU\n\n" +
+                "1. Show gistogram.\n" +
+                "2. Equalization.\n" +
+                "3. Variant 9 function.\n" +
+                "0. Exit.\n"
+            );
+            Console.Write("> ");
         }
 
         private static void SaveImage(Image bitmap, string path) {
@@ -100,23 +155,31 @@ namespace CSharpLab {
 
         private static GistoCollection VariantGisto(GistoCollection input) {
             var result = new GistoCollection(input.Count);
+            Console.Write("Please enter lower limit: ");
+            var lower = int.Parse(Console.ReadLine()!);
+            Console.Write("Please enter upper limit: ");
+            var upper = int.Parse(Console.ReadLine()!);
+
             foreach (var pair in input) {
-                result[pair.Key] = VariantFunction(pair.Key);
+                result[pair.Key] = VariantFunction(pair.Key, lower: lower, upper: upper);
             }
 
             return result;
 
-            static int VariantFunction(int x) {
-                const int fst = 255 / 3;
-                const int snd = 2 * 255 / 3;
+            static int VariantFunction(int x, int lower, int upper) {
+                return Convert.ToInt32(GetGradient(x, lower, upper) * 255);
 
-                return Convert.ToInt32(
-                    x switch {
-                        < fst => 0.5f,
-                        < snd => (x - fst) * 1f / (snd - fst),
-                        _     => 0.5f
-                    } * 255
-                );
+                static float GetGradient(int x, int lower, int upper) {
+                    if (x < lower) {
+                        return 0.5f;
+                    }
+
+                    if (x < upper) {
+                        return (x - lower) * 1f / (upper - lower);
+                    }
+
+                    return 0.5f;
+                }
             }
         }
     }
